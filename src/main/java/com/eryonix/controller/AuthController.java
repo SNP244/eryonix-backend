@@ -42,6 +42,9 @@ public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private com.eryonix.service.CloudinaryService cloudinaryService;
+
     @PostMapping("/signup")
     public ResponseEntity<LoginResponse> register(@RequestBody SignupRequest signupRequest) {
         if (userRepository.findByEmail(signupRequest.getEmail()).isPresent()) {
@@ -134,38 +137,26 @@ public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
     }
 
     @PostMapping("/profile-picture")
-public ResponseEntity<String> uploadProfilePicture(@RequestParam("image") MultipartFile image,
-                                                   @AuthenticationPrincipal UserDetails userDetails) {
-    if (image.isEmpty()) {
-        return ResponseEntity.badRequest().body("No file uploaded.");
+    public ResponseEntity<String> uploadProfilePicture(@RequestParam("image") MultipartFile image,
+                                                       @AuthenticationPrincipal UserDetails userDetails) {
+        if (image.isEmpty()) {
+            return ResponseEntity.badRequest().body("No file uploaded.");
+        }
+
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        try {
+            String imageUrl = cloudinaryService.uploadFile(image, "eryonix/profiles");
+            user.setProfilePictureUrl(imageUrl);
+            userRepository.save(user);
+
+            return ResponseEntity.ok("Profile picture uploaded successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to upload profile picture.");
+        }
     }
-
-    User user = userRepository.findByUsername(userDetails.getUsername())
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-    try {
-        String uploadDir = System.getProperty("user.dir") + "/uploads/profiles/"; 
-
-        File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
-
-        String filename = System.currentTimeMillis() + "_" + image.getOriginalFilename();
-        String filePath = uploadDir + filename;
-
-        File destination = new File(filePath);
-        image.transferTo(destination); 
-
-        String imageUrl = "/uploads/profiles/" + filename;
-user.setProfilePictureUrl(imageUrl);
-
-        userRepository.save(user);
-
-        return ResponseEntity.ok("Profile picture uploaded successfully.");
-    } catch (IOException e) {
-        e.printStackTrace();
-        return ResponseEntity.status(500).body("Failed to upload profile picture.");
-    }
-}
 
 
 }

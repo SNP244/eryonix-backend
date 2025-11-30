@@ -34,6 +34,9 @@ public class MessageController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private com.eryonix.service.CloudinaryService cloudinaryService;
+
     //  Helper method to extract userId from request
     private Long extractUserId(HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
@@ -83,43 +86,33 @@ public ResponseEntity<?> sendMessage(@RequestBody MessageRequest req, HttpServle
 
 
     @PostMapping("/upload")
-public ResponseEntity<?> uploadChatMedia(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
-    try {
-        String uploadDir = System.getProperty("user.dir") + "/uploads/chat/";
-        File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+    public ResponseEntity<?> uploadChatMedia(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+        try {
+            String fileUrl = cloudinaryService.uploadFile(file, "eryonix/chat");
 
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || originalFilename.isEmpty()) {
-            originalFilename = "default";
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1);
+            }
+
+            String mediaType = switch (extension.toLowerCase()) {
+                case "jpg", "jpeg", "png", "gif", "webp" -> "image";
+                case "mp4", "mov", "avi", "mkv" -> "video";
+                case "mp3", "wav", "ogg" -> "audio";
+                default -> "file";
+            };
+
+            //  Only return media info
+            return ResponseEntity.ok(Map.of(
+                "mediaUrl", fileUrl,
+                "mediaType", mediaType
+            ));
+
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Failed to upload file.");
         }
-
-        String safeFilename = originalFilename.replaceAll("\\s+", "_");
-        String extension = safeFilename.substring(safeFilename.lastIndexOf('.') + 1);
-        String filePath = uploadDir + safeFilename;
-
-        File destination = new File(filePath);
-        file.transferTo(destination);
-
-        String fileUrl = "/uploads/chat/" + safeFilename;
-
-        String mediaType = switch (extension.toLowerCase()) {
-            case "jpg", "jpeg", "png", "gif", "webp" -> "image";
-            case "mp4", "mov", "avi", "mkv" -> "video";
-            case "mp3", "wav", "ogg" -> "audio";
-            default -> "file";
-        };
-
-        //  Only return media info
-        return ResponseEntity.ok(Map.of(
-            "mediaUrl", fileUrl,
-            "mediaType", mediaType
-        ));
-
-    } catch (IOException e) {
-        return ResponseEntity.status(500).body("Failed to upload file.");
     }
-}
 
 
 }

@@ -18,23 +18,11 @@ import java.util.UUID;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final CloudinaryService cloudinaryService;
 
     public Post createPost(MultipartFile file, String caption, User user) throws IOException {
-        // Generate a unique filename
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-
-        // Define upload directory (relative to project root)
-        String uploadDir = "uploads/images/";
-        File destinationFile = new File(uploadDir + fileName);
-
-        // Create directories if they don't exist
-        destinationFile.getParentFile().mkdirs();
-
-        // Save image to disk
-        file.transferTo(destinationFile);
-
-        // Construct URL
-        String imageUrl = "/" + uploadDir + fileName;
+        // Upload to Cloudinary
+        String imageUrl = cloudinaryService.uploadFile(file, "eryonix/posts");
 
         // Create Post and save to DB
         Post post = new Post();

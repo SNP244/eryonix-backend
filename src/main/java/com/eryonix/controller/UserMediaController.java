@@ -27,84 +27,57 @@ public class UserMediaController {
     @Autowired private PostRepository postRepository;
     @Autowired private VideoRepository videoRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private com.eryonix.service.CloudinaryService cloudinaryService;
 
     @PostMapping("/upload-post")
-public ResponseEntity<?> uploadPost(@RequestParam("image") MultipartFile image,
-                                    @RequestParam("caption") String caption,
-                                    @RequestParam(value = "category", required = false) String category, 
-                                    @AuthenticationPrincipal UserDetails userDetails) {
-    try {
-        String uploadDir = System.getProperty("user.dir") + "/uploads/images/";
-        File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+    public ResponseEntity<?> uploadPost(@RequestParam("image") MultipartFile image,
+                                        @RequestParam("caption") String caption,
+                                        @RequestParam(value = "category", required = false) String category, 
+                                        @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            String imageUrl = cloudinaryService.uploadFile(image, "eryonix/posts");
 
-        String originalFilename = image.getOriginalFilename();
-        if (originalFilename == null || originalFilename.trim().isEmpty()) {
-    originalFilename = "default.jpg"; 
-}
-        String safeFilename = originalFilename.replaceAll("\\s+", "_"); 
-        String filePath = uploadDir + safeFilename;
+            User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
 
-        File destination = new File(filePath);
-        image.transferTo(destination);
+            Post post = new Post();
+            post.setImageUrl(imageUrl);
+            post.setCaption(caption);
+            post.setCategory(category);
+            post.setCreatedAt(LocalDateTime.now());
+            post.setUser(user);
 
-        String imageUrl = "/uploads/images/" + safeFilename;
+            postRepository.save(post);
 
-        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
-
-        Post post = new Post();
-        post.setImageUrl(imageUrl);
-        post.setCaption(caption);
-         post.setCategory(category);
-        post.setCreatedAt(LocalDateTime.now());
-        post.setUser(user);
-
-        postRepository.save(post);
-
-        return ResponseEntity.ok("Post uploaded successfully.");
-    } catch (IOException e) {
-        return ResponseEntity.status(500).body("Failed to upload image.");
+            return ResponseEntity.ok("Post uploaded successfully.");
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Failed to upload image.");
+        }
     }
-}
 
     @PostMapping("/upload-video")
-public ResponseEntity<?> uploadVideo(@RequestParam("video") MultipartFile video,
-                                     @RequestParam("caption") String caption,
-                                     @RequestParam(value = "category", required = false) String category, 
-                                     @AuthenticationPrincipal UserDetails userDetails) {
-    try {
-        String uploadDir = System.getProperty("user.dir") + "/uploads/videos/";
-        File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+    public ResponseEntity<?> uploadVideo(@RequestParam("video") MultipartFile video,
+                                         @RequestParam("caption") String caption,
+                                         @RequestParam(value = "category", required = false) String category, 
+                                         @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            String videoUrl = cloudinaryService.uploadFile(video, "eryonix/videos");
 
-        String originalFilename = video.getOriginalFilename();
-        if (originalFilename == null || originalFilename.trim().isEmpty()) {
-    originalFilename = "default.mp4"; 
-}
-        String safeFilename = originalFilename.replaceAll("\\s+", "_");
-        String filePath = uploadDir + safeFilename;
+            User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
 
-        File destination = new File(filePath);
-        video.transferTo(destination);
+            Video videoEntity = new Video();
+            videoEntity.setVideoUrl(videoUrl);
+            videoEntity.setCaption(caption);
+            videoEntity.setCategory(category);
+            videoEntity.setCreatedAt(LocalDateTime.now());
+            videoEntity.setUser(user);
 
-        String videoUrl = "/uploads/videos/" + safeFilename;
+            videoRepository.save(videoEntity);
 
-        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
-
-        Video videoEntity = new Video();
-        videoEntity.setVideoUrl(videoUrl);
-        videoEntity.setCaption(caption);
-        videoEntity.setCategory(category);
-        videoEntity.setCreatedAt(LocalDateTime.now());
-        videoEntity.setUser(user);
-
-        videoRepository.save(videoEntity);
-
-        return ResponseEntity.ok("Video uploaded successfully.");
-    } catch (IOException e) {
-        return ResponseEntity.status(500).body("Failed to upload video.");
+            return ResponseEntity.ok("Video uploaded successfully.");
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Failed to upload video.");
+        }
     }
-}
 
     @GetMapping("/posts")
 public ResponseEntity<List<PostResponse>> getAllPosts() {

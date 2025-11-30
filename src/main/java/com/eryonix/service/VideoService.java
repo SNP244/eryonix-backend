@@ -18,23 +18,11 @@ import java.util.UUID;
 public class VideoService {
 
     private final VideoRepository videoRepository;
+    private final CloudinaryService cloudinaryService;
 
     public Video uploadVideo(MultipartFile file, String title, User user) throws IOException {
-        // Generate a unique filename
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-
-        // Define upload directory (relative to project root)
-        String uploadDir = "uploads/videos/";
-        File destinationFile = new File(uploadDir + fileName);
-
-        // Create directories if they don't exist
-        destinationFile.getParentFile().mkdirs();
-
-        // Save file to disk
-        file.transferTo(destinationFile);
-
-        // Save file URL in DB
-        String fileUrl = "/" + uploadDir + fileName;
+        // Upload to Cloudinary
+        String fileUrl = cloudinaryService.uploadFile(file, "eryonix/videos");
 
         // Create Video object and save to DB
         Video video = new Video();

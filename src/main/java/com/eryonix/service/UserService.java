@@ -25,11 +25,15 @@ public class UserService {
     @Autowired
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       ModelMapper modelMapper) {
+                       ModelMapper modelMapper,
+                       CloudinaryService cloudinaryService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
+        this.cloudinaryService = cloudinaryService;
     }
+
+    private final CloudinaryService cloudinaryService;
 
     // Register and save a new user using SignupRequest
     public User saveUser(SignupRequest signupRequest) {
@@ -79,17 +83,7 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String folderPath = "uploads/profile_pictures/";
-        File folder = new File(folderPath);
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        String fileName = username + "_" + file.getOriginalFilename();
-        File destinationFile = new File(folderPath + fileName);
-        file.transferTo(destinationFile);
-
-        String fileUrl = folderPath + fileName;
+        String fileUrl = cloudinaryService.uploadFile(file, "eryonix/profiles");
         user.setProfilePictureUrl(fileUrl);
         userRepository.save(user);
 
