@@ -86,11 +86,22 @@ public class UserController {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setFullname(updateRequest.getFullname());
-        user.setSkills(updateRequest.getSkills());
-        user.setPortfolioLink(updateRequest.getPortfolioLink());
-        user.setBio(updateRequest.getBio());
-        user.setProfilePictureUrl(updateRequest.getProfilePictureUrl());
+        // Only update fields that are provided (not null or empty)
+        if (updateRequest.getFullname() != null && !updateRequest.getFullname().trim().isEmpty()) {
+            user.setFullname(updateRequest.getFullname());
+        }
+        if (updateRequest.getSkills() != null && !updateRequest.getSkills().isEmpty()) {
+            user.setSkills(updateRequest.getSkills());
+        }
+        if (updateRequest.getPortfolioLink() != null && !updateRequest.getPortfolioLink().trim().isEmpty()) {
+            user.setPortfolioLink(updateRequest.getPortfolioLink());
+        }
+        if (updateRequest.getBio() != null && !updateRequest.getBio().trim().isEmpty()) {
+            user.setBio(updateRequest.getBio());
+        }
+        if (updateRequest.getProfilePictureUrl() != null && !updateRequest.getProfilePictureUrl().trim().isEmpty()) {
+            user.setProfilePictureUrl(updateRequest.getProfilePictureUrl());
+        }
 
         userRepository.save(user);
 
